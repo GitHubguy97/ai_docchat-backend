@@ -8,6 +8,11 @@ class Settings(BaseSettings):
     database_host: str
     database_port: int
     database_name: str
+
+    #Redis
+    redis_host: str
+    redis_port: int
+    redis_db: int
     
     # Other settings
     debug: bool = False

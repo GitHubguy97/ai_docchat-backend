@@ -1,6 +1,7 @@
 import redis
+from app.config import settings
 
-r = redis.Redis(host="localhost", port=6379, db=0)
+r = redis.Redis(host=settings.redis_host, port=settings.redis_port, db=settings.redis_db)
 
 r.set("test_key", "Hello, Redis!")
 value = r.get("test_key")
