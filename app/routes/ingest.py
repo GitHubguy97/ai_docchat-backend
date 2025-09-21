@@ -29,7 +29,6 @@ async def ingest_document(file: UploadFile = File(...), db: Session = Depends(ge
   #Check Redis cache fist
   cached_doc_id = redis_client.get(f"doc:hash:{content_hash}")
 
-  print(cached_doc_id)
 
   if cached_doc_id:
     doc = db.query(Document).filter(Document.id == cached_doc_id).first()
@@ -52,9 +51,14 @@ async def ingest_document(file: UploadFile = File(...), db: Session = Depends(ge
   #If not in cache or db, process new the PDF file
   try:
     pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
-    text = ""
-    for page in pdf_reader.pages:
-      text += page.extract_text()
+    
+    # Create concatenated text with inline page markers
+    full_text = ""
+    for page_num, page in enumerate(pdf_reader.pages):
+      page_text = page.extract_text()
+      if page_text.strip():  # Only add non-empty pages
+        full_text += f"[PAGE:{page_num + 1}] {page_text}\n\n"
+    
   except Exception as e:
     raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=f"Failed to read PDF file: {str(e)}")
 
@@ -75,13 +79,13 @@ async def ingest_document(file: UploadFile = File(...), db: Session = Depends(ge
   redis_client.setex(f"doc:hash:{content_hash}", 30*24*3600, str(document.id)) #Cache for 1 hour
 
   #Queue the document for processing
-  process_document.delay(document.id, text)
+  process_document.delay(document.id, full_text)
 
   return {
     "document_id": document.id,
     "status": document.status,
     "pages": document.pages,
-    "text_length": len(text),
+    "text_length": len(full_text),
     "content_hash": document.content_hash,
     "file_size": document.bytes
   }
