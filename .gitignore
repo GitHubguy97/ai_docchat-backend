@@ -2,6 +2,7 @@
 .env
 
 DESIGN.md
+README-Qdrant.md
 
 # Python
 __pycache__/
