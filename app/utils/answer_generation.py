@@ -2,6 +2,7 @@ from typing import List, Dict, Tuple, Optional
 from openai import OpenAI
 from app.config import settings
 from app.redis_client import redis_client
+from app.utils.logger import openai_logger, redis_logger
 from pydantic import BaseModel
 import json
 import hashlib
@@ -56,11 +57,13 @@ def get_cached_answer(question: str) -> Optional[Dict]:
         
         cached_data = redis_client.get(cache_key)
         if cached_data:
+            redis_logger.info(f"Cache hit", question_hash=question_hash[:16])
             return json.loads(cached_data)
+        redis_logger.info(f"Cache miss", question_hash=question_hash[:16])
         return None
         
     except Exception as e:
-        print(f"Error checking cache: {str(e)}")
+        redis_logger.exception(f"Cache check error", error=str(e))
         return None
 
 def cache_answer(question: str, answer: str, citations: List[Citation], document_id: int, ttl: int = 3600):
@@ -90,10 +93,10 @@ def cache_answer(question: str, answer: str, citations: List[Citation], document
         }
         
         redis_client.setex(cache_key, ttl, json.dumps(cache_data))
-        print(f"Cached answer for question hash: {question_hash}")
+        redis_logger.info(f"Answer cached", question_hash=question_hash[:16], document_id=document_id)
         
     except Exception as e:
-        print(f"Error caching answer: {str(e)}")
+        redis_logger.exception(f"Cache storage error", error=str(e))
 
 def generate_answer_with_citations(question: str, chunks: List[Dict], document_id: int) -> Tuple[str, List[Citation]]:
     """
@@ -165,6 +168,7 @@ CITATIONS:
 Answer:"""
 
     try:
+        openai_logger.info(f"Generating answer with OpenAI", question=question[:50], chunks_count=len(chunks))
         client = OpenAI(api_key=settings.openai_api_key)
         
         response = client.chat.completions.create(
@@ -178,6 +182,7 @@ Answer:"""
         )
         
         response_text = response.choices[0].message.content.strip()
+        openai_logger.info(f"OpenAI response received", response_length=len(response_text))
         
         # Parse the response to extract answer and citations
         answer, exact_quotes = parse_llm_response(response_text)
@@ -190,10 +195,11 @@ Answer:"""
         # Cache the answer for future use
         cache_answer(question, answer, citations, document_id)
         
+        openai_logger.info(f"Answer generation completed", answer_length=len(answer), citations_count=len(citations))
         return answer, citations
         
     except Exception as e:
-        print(f"Error generating answer: {str(e)}")
+        openai_logger.exception(f"Answer generation error", question=question[:50], error=str(e))
         return f"Error generating answer: {str(e)}", citations
 
 def parse_llm_response(response_text: str) -> Tuple[str, List[str]]:

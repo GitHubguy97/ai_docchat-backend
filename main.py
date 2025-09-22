@@ -1,7 +1,17 @@
 from fastapi import FastAPI
-from app.routes import health, ask, ingest, documents
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import health, ask, ingest, documents, jobs, logs
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Vite dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
@@ -11,3 +21,5 @@ app.include_router(health.router)
 app.include_router(ask.router)
 app.include_router(ingest.router)
 app.include_router(documents.router)
+app.include_router(jobs.router)
+app.include_router(logs.router)
