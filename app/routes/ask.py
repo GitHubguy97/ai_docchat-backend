@@ -6,7 +6,7 @@ from app.utils.rate_limiting import check_rate_limit
 from app.utils.format_time import format_reset_time
 from app.utils.enhanced_search import enhanced_search
 from app.utils.answer_generation import generate_answer_with_citations, Citation
-from app.utils.logger import api_logger
+from app.utils.answer_generation import get_cached_answer, Citation
 
 router = APIRouter()
 
@@ -27,15 +27,10 @@ def get_client_ip(request: Request):
 
 @router.post("/ask")
 def ask_question(request: AskRequest, ip_address: str = Depends(get_client_ip)):
-    api_logger.info(f"Ask request received", 
-                   question=request.question[:100], 
-                   document_id=request.document_id, 
-                   ip=ip_address)
     
     rate_limit_result = check_rate_limit(ip_address)
 
     if not rate_limit_result["allowed"]:
-        api_logger.warning(f"Rate limit exceeded", ip=ip_address, reset_time=rate_limit_result['reset_time'])
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS, 
             detail=f"Rate limit exceeded. Please try again in {format_reset_time(rate_limit_result['reset_time'])} seconds."
@@ -43,11 +38,9 @@ def ask_question(request: AskRequest, ip_address: str = Depends(get_client_ip)):
 
     try:
         # Check cache first before doing any expensive operations
-        from app.utils.answer_generation import get_cached_answer, Citation
-        
         cached_result = get_cached_answer(request.question)
         if cached_result:
-            api_logger.info(f"Cache hit for question", question=request.question[:50])
+            print(f"Returning cached answer for question: {request.question[:50]}...")
             citations = [Citation(**citation_dict) for citation_dict in cached_result["citations"]]
             return AskResponse(
                 question=request.question,
@@ -58,19 +51,15 @@ def ask_question(request: AskRequest, ip_address: str = Depends(get_client_ip)):
             )
         
         # Cache miss - proceed with enhanced search and LLM generation
-        api_logger.info(f"Cache miss - processing question", question=request.question[:50])
+        print(f"Cache miss - processing question with enhanced search: {request.question}")
         similar_chunks = enhanced_search(
             question=request.question,
             document_id=request.document_id
         )
-        api_logger.info(f"Enhanced search completed", chunks_found=len(similar_chunks))
+        print(f"Enhanced search found {len(similar_chunks)} similar chunks")
         
         # Generate answer with citations
         answer, citations = generate_answer_with_citations(request.question, similar_chunks, request.document_id)
-        
-        api_logger.info(f"Answer generated successfully", 
-                       answer_length=len(answer), 
-                       citations_count=len(citations))
         
         return AskResponse(
             question=request.question,
@@ -81,10 +70,7 @@ def ask_question(request: AskRequest, ip_address: str = Depends(get_client_ip)):
         )
         
     except Exception as e:
-        api_logger.exception(f"Error in ask endpoint", 
-                           question=request.question[:50], 
-                           document_id=request.document_id,
-                           error=str(e))
+        print(f"Error in ask endpoint: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error processing question: {str(e)}"

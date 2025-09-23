@@ -1,0 +1,26 @@
+2025-09-22 11:27:55,557 - api - ERROR - [Frontend ERROR] Document upload failed
+2025-09-22 11:32:00,763 - api - INFO - Ask request received
+2025-09-22 11:32:00,772 - api - INFO - Cache miss - processing question
+2025-09-22 11:32:12,965 - api - INFO - Enhanced search completed
+2025-09-22 11:32:14,319 - api - INFO - Ask request received
+2025-09-22 11:32:14,319 - api - INFO - Cache miss - processing question
+2025-09-22 11:32:25,196 - api - INFO - Enhanced search completed
+2025-09-22 11:32:41,252 - api - INFO - Answer generated successfully
+2025-09-22 11:32:44,373 - api - INFO - Answer generated successfully
+2025-09-22 11:32:45,061 - api - ERROR - [Frontend ERROR] Document upload failed
+2025-09-22 11:47:17,146 - api - INFO - Ask request received
+2025-09-22 11:47:17,149 - api - INFO - Cache hit for question
+2025-09-22 11:47:22,204 - api - INFO - Ask request received
+2025-09-22 11:47:22,205 - api - INFO - Cache hit for question
+2025-09-22 13:14:13,779 - api - INFO - Ask request received
+2025-09-22 13:14:13,784 - api - INFO - Cache miss - processing question
+2025-09-22 13:14:28,729 - api - INFO - Enhanced search completed
+2025-09-22 13:14:52,855 - api - INFO - Answer generated successfully
+2025-09-22 13:14:55,180 - api - INFO - Ask request received
+2025-09-22 13:14:55,180 - api - INFO - Cache hit for question
+2025-09-22 13:14:57,905 - api - INFO - Ask request received
+2025-09-22 13:14:57,906 - api - INFO - Cache hit for question
+2025-09-22 13:15:16,096 - api - INFO - Ask request received
+2025-09-22 13:15:16,097 - api - INFO - Cache miss - processing question
+2025-09-22 13:15:24,884 - api - INFO - Enhanced search completed
+2025-09-22 13:15:27,970 - api - INFO - Answer generated successfully

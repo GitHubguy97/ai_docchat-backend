@@ -77,33 +77,3 @@ def search_similar_chunks(query_embedding: List[float], top_k: int = 6, document
     except Exception as e:
         print(f"Vector search error: {e}")
         return []
-
-def search_similar_chunks_simple(query_embedding: List[float], top_k: int = 12) -> List[Dict]:
-    """
-    Simplified version that returns Qdrant results without database lookup.
-    Useful for debugging and quick testing.
-    """
-    try:
-        qdrant_client = QdrantClient(host="127.0.0.1", port=6333)
-        
-        search_results = qdrant_client.search(
-            collection_name="embeddings",
-            query_vector=query_embedding,
-            limit=top_k,
-            with_payload=True,
-            with_vectors=False
-        )
-        
-        results = []
-        for result in search_results:
-            results.append({
-                "chunk_id": result.id,
-                "similarity_score": result.score,
-                "payload": result.payload  # Contains chunk_id and document_id
-            })
-        
-        return results
-        
-    except Exception as e:
-        print(f"Simple vector search error: {e}")
-        return []

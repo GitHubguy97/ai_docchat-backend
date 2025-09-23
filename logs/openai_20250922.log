@@ -1,0 +1,28 @@
+2025-09-22 11:32:00,772 - openai - INFO - Starting enhanced search
+2025-09-22 11:32:00,772 - openai - INFO - Parsing question with structured approach
+2025-09-22 11:32:04,498 - openai - INFO - Question parsed successfully
+2025-09-22 11:32:12,965 - openai - INFO - Enhanced search completed
+2025-09-22 11:32:12,965 - openai - INFO - Generating answer with OpenAI
+2025-09-22 11:32:14,320 - openai - INFO - Starting enhanced search
+2025-09-22 11:32:14,320 - openai - INFO - Parsing question with structured approach
+2025-09-22 11:32:18,390 - openai - INFO - Question parsed successfully
+2025-09-22 11:32:25,194 - openai - INFO - Enhanced search completed
+2025-09-22 11:32:25,197 - openai - INFO - Generating answer with OpenAI
+2025-09-22 11:32:41,251 - openai - INFO - OpenAI response received
+2025-09-22 11:32:41,252 - openai - INFO - Answer generation completed
+2025-09-22 11:32:44,372 - openai - INFO - OpenAI response received
+2025-09-22 11:32:44,373 - openai - INFO - Answer generation completed
+2025-09-22 13:14:13,784 - openai - INFO - Starting enhanced search
+2025-09-22 13:14:13,784 - openai - INFO - Parsing question with structured approach
+2025-09-22 13:14:17,317 - openai - INFO - Question parsed successfully
+2025-09-22 13:14:28,729 - openai - INFO - Enhanced search completed
+2025-09-22 13:14:28,730 - openai - INFO - Generating answer with OpenAI
+2025-09-22 13:14:52,854 - openai - INFO - OpenAI response received
+2025-09-22 13:14:52,855 - openai - INFO - Answer generation completed
+2025-09-22 13:15:16,097 - openai - INFO - Starting enhanced search
+2025-09-22 13:15:16,097 - openai - INFO - Parsing question with structured approach
+2025-09-22 13:15:18,914 - openai - INFO - Question parsed successfully
+2025-09-22 13:15:24,884 - openai - INFO - Enhanced search completed
+2025-09-22 13:15:24,884 - openai - INFO - Generating answer with OpenAI
+2025-09-22 13:15:27,969 - openai - INFO - OpenAI response received
+2025-09-22 13:15:27,970 - openai - INFO - Answer generation completed

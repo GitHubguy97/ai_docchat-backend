@@ -1,12 +1,12 @@
 from app.celery_app import celery_app
 from app.database import SessionLocal
-from app.models.models import Document, Chunk, Embedding
+from app.models.models import Document, Chunk
 from app.utils.chunking import smart_chunk_document
 from app.utils.embeddings import generate_embeddings
 from app.redis_client import redis_client
-from app.utils.logger import task_logger, qdrant_logger, openai_logger, db_logger
 from qdrant_client import QdrantClient
 from qdrant_client.models import PointStruct
+from app.qdrant_setup import setup_qdrant_collection
 from typing import List, Dict
 import json
 
@@ -15,8 +15,11 @@ def process_document(document_id: int, full_text: str):
     """
     Background task to process a document
     """
-    task_logger.info(f"Starting document processing", document_id=document_id, text_length=len(full_text))
+    print(f"Starting to process document {document_id}")
     
+    # Ensure Qdrant collection exists
+    setup_qdrant_collection()
+
     # Get database session
     db = SessionLocal()
     
@@ -27,13 +30,12 @@ def process_document(document_id: int, full_text: str):
         # Get the document
         document = db.query(Document).filter(Document.id == document_id).first()
         if not document:
-            task_logger.error(f"Document not found", document_id=document_id)
+            print(f"Document {document_id} not found")
             return
         
         # Update status to processing
         document.status = "processing"
         db.commit()
-        db_logger.info(f"Document status updated to processing", document_id=document_id)
         
         # Update job progress in Redis
         job_key = f"job:{document_id}"
@@ -45,9 +47,9 @@ def process_document(document_id: int, full_text: str):
         redis_client.setex(job_key, 3600, json.dumps(job_data))  # 1 hour TTL
         
         # Chunk with smart page-aware strategy
-        task_logger.info(f"Starting document chunking", document_id=document_id)
+        print("Chunking document with smart page-aware strategy...")
         chunks = smart_chunk_document(full_text)
-        task_logger.info(f"Document chunking completed", document_id=document_id, chunks_created=len(chunks))
+        print(f"Created {len(chunks)} chunks")
         
         # Update progress - chunking complete
         job_data["progress"] = 40
@@ -75,7 +77,7 @@ def process_document(document_id: int, full_text: str):
             chunk_texts.append(chunk_data['text'])
         
         db.commit()
-        db_logger.info(f"Chunks stored in database", document_id=document_id, chunks_count=len(chunk_ids))
+        print("Chunks added to database")
         
         # Update progress - chunks stored
         job_data["progress"] = 60
@@ -83,9 +85,9 @@ def process_document(document_id: int, full_text: str):
         redis_client.setex(job_key, 3600, json.dumps(job_data))
         
         # Generate embeddings for all chunks
-        openai_logger.info(f"Generating embeddings", document_id=document_id, chunks_count=len(chunk_texts))
+        print(f"Generating embeddings for {len(chunk_texts)} chunks...")
         embeddings = generate_embeddings(chunk_texts)
-        openai_logger.info(f"Embeddings generated", document_id=document_id, embeddings_count=len(embeddings))
+        print(f"Generated {len(embeddings)} embeddings")
         
         # Update progress - embeddings generated
         job_data["progress"] = 80
@@ -93,7 +95,7 @@ def process_document(document_id: int, full_text: str):
         redis_client.setex(job_key, 3600, json.dumps(job_data))
         
         # Store embeddings in Qdrant
-        qdrant_logger.info(f"Storing embeddings in Qdrant", document_id=document_id, points_count=len(chunk_ids))
+        print("Storing embeddings in Qdrant...")
         try:
             points = []
             for chunk_id, embedding_vector in zip(chunk_ids, embeddings):
@@ -112,13 +114,14 @@ def process_document(document_id: int, full_text: str):
                 points=points
             )
             
-            qdrant_logger.info(f"Embeddings stored in Qdrant", document_id=document_id, points_stored=len(points))
+            print(f"Points: {points}")
+            print(f"Stored {len(embeddings)} embeddings in Qdrant")
         except Exception as qdrant_error:
-            qdrant_logger.exception(f"Qdrant storage error", document_id=document_id, error=str(qdrant_error))
+            print(f"Qdrant error: {qdrant_error}")
             
         document.status = "ready"
         db.commit()
-        db_logger.info(f"Document processing completed successfully", document_id=document_id)
+        print(f"Document {document_id} processing completed successfully")
         
         # Update progress - completed
         job_data["status"] = "ready"
@@ -126,10 +129,8 @@ def process_document(document_id: int, full_text: str):
         job_data["message"] = "Document processing complete!"
         redis_client.setex(job_key, 3600, json.dumps(job_data))
         
-        task_logger.info(f"Document processing completed", document_id=document_id)
-        
     except Exception as e:
-        task_logger.exception(f"Document processing failed", document_id=document_id, error=str(e))
+        print(f"Document processing failed: {str(e)}")
         document.status = "failed"
         db.commit()
         

@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from app.redis_client import redis_client
 from app.models.models import Document
 from app.dependencies import get_db
-from app.utils.logger import api_logger, redis_logger, db_logger
 from sqlalchemy.orm import Session
 
 router = APIRouter()
@@ -19,12 +18,9 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         Job status with progress information
     """
     try:
-        api_logger.info(f"Job status request", job_id=job_id)
-        
         # Get document from database
         document = db.query(Document).filter(Document.id == int(job_id)).first()
         if not document:
-            api_logger.warning(f"Document not found", job_id=job_id)
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Document not found"
@@ -39,14 +35,10 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
             job_info = json.loads(job_data)
             status_info = job_info.get('status', 'unknown')
             progress = job_info.get('progress', 0)
-            redis_logger.info(f"Job status from Redis", job_id=job_id, status=status_info, progress=progress)
         else:
             # Fallback to document status
             status_info = document.status
             progress = 100 if document.status == 'completed' else 0
-            redis_logger.info(f"Job status from database fallback", job_id=job_id, status=status_info, progress=progress)
-        
-        api_logger.info(f"Job status retrieved", job_id=job_id, status=status_info, progress=progress)
         
         return {
             "job_id": job_id,
@@ -59,13 +51,11 @@ def get_job_status(job_id: str, db: Session = Depends(get_db)):
         }
         
     except ValueError:
-        api_logger.warning(f"Invalid job ID format", job_id=job_id)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid job ID format"
         )
     except Exception as e:
-        api_logger.exception(f"Job status retrieval error", job_id=job_id, error=str(e))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving job status: {str(e)}"

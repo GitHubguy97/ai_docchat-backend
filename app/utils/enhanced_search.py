@@ -9,7 +9,6 @@ from openai import OpenAI
 from app.config import settings
 from app.utils.embeddings import generate_embeddings
 from app.utils.vector_search import search_similar_chunks
-from app.utils.logger import openai_logger
 
 # Initialize OpenAI client
 client = OpenAI(api_key=settings.openai_api_key)
@@ -47,7 +46,6 @@ def split_question_structured(question: str) -> Dict:
     ]
     
     try:
-        openai_logger.info(f"Parsing question with structured approach", question=question[:50])
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -67,16 +65,11 @@ def split_question_structured(question: str) -> Dict:
         function_call = response.choices[0].message.function_call
         if function_call and function_call.name == "analyze_question_complexity":
             arguments = json.loads(function_call.arguments)
-            openai_logger.info(f"Question parsed successfully", 
-                             sub_questions_count=len(arguments.get('sub_questions', [])),
-                             complexity=arguments.get('complexity'))
             return arguments
         else:
-            openai_logger.warning(f"No function call returned", question=question[:50])
             return {"error": "No function call returned"}
             
     except Exception as e:
-        openai_logger.exception(f"Question parsing failed", question=question[:50], error=str(e))
         return {"error": f"OpenAI API error: {str(e)}"}
 
 def deduplicate_chunks(chunks: List[Dict]) -> List[Dict]:
@@ -106,12 +99,10 @@ def enhanced_search(question: str, document_id: int) -> List[Dict]:
         List of relevant chunks with deduplication
     """
     try:
-        openai_logger.info(f"Starting enhanced search", question=question[:50], document_id=document_id)
         # 1. Parse question into structured sub-questions
         parsed = split_question_structured(question)
         
         if "error" in parsed:
-            openai_logger.warning(f"Question parsing failed, using fallback", error=parsed['error'])
             # Fallback to simple search
             return search_similar_chunks(
                 generate_embeddings([question])[0],
@@ -142,7 +133,6 @@ def enhanced_search(question: str, document_id: int) -> List[Dict]:
                 all_chunks.extend(chunks)
                 
             except Exception as e:
-                openai_logger.warning(f"Sub-question search failed", sub_question=sub_q[:50], error=str(e))
                 continue
         
         # 3. Deduplicate and return top chunks
@@ -153,22 +143,15 @@ def enhanced_search(question: str, document_id: int) -> List[Dict]:
         
         # Ensure we have enough chunks, fallback to simple search if needed
         if len(unique_chunks) < 3:
-            openai_logger.warning(f"Enhanced search returned too few chunks, using fallback", 
-                                unique_chunks=len(unique_chunks))
             return search_similar_chunks(
                 generate_embeddings([question])[0],
                 top_k=8,
                 document_id=document_id
             )
         
-        openai_logger.info(f"Enhanced search completed", 
-                         total_chunks=len(all_chunks), 
-                         unique_chunks=len(unique_chunks),
-                         sub_questions_processed=len(sub_questions))
         return unique_chunks[:8]
         
     except Exception as e:
-        openai_logger.exception(f"Enhanced search error", question=question[:50], error=str(e))
         # Fallback to simple search
         try:
             return search_similar_chunks(
@@ -177,7 +160,6 @@ def enhanced_search(question: str, document_id: int) -> List[Dict]:
                 document_id=document_id
             )
         except Exception as fallback_error:
-            openai_logger.exception(f"Fallback search also failed", question=question[:50], error=str(fallback_error))
             return []
 
 def get_search_strategy_info(question: str) -> Dict:
